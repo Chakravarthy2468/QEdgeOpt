@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QEdgeOpt Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f172a',
+                        cardBg: '#1e293b',
+                        accent: '#38bdf8',
+                        qiea: '#c084fc',
+                        ga: '#f472b6',
+                        ffd: '#fbbf24'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-darkBg text-gray-200 font-sans h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-cardBg border-b border-slate-700 px-6 py-4 flex justify-between items-center shrink-0 shadow-md z-10">
+        <div>
+            <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-accent to-qiea">
+                QEdgeOpt
+            </h1>
+            <p class="text-xs text-gray-400 mt-1">Quantum-Inspired Edge Microservice Placement Optimizer</p>
+        </div>
+        <div class="flex items-center space-x-4">
+            <span id="status-indicator" class="flex items-center text-sm">
+                <span class="w-2 h-2 rounded-full bg-red-500 mr-2" id="status-dot"></span>
+                <span id="status-text">No Dataset</span>
+            </span>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- Left Panel: Configuration -->
+        <aside class="w-80 bg-cardBg border-r border-slate-700 flex flex-col overflow-y-auto shrink-0 z-0">
+            
+            <!-- Dataset Section -->
+            <div class="p-5 border-b border-slate-700">
+                <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Dataset</h2>
+                
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Preset Size</label>
+                        <select id="preset-size" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-sm text-gray-200">
+                            <option value="small">Small (10 svc, 4 nodes)</option>
+                            <option value="medium">Medium (30 svc, 10 nodes)</option>
+                            <option value="large">Large (100 svc, 25 nodes)</option>
+                        </select>
+                    </div>
+                    
+                    <button id="btn-generate" class="w-full bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white rounded py-2 text-sm transition-colors">
+                        Generate Dataset
+                    </button>
+                    
+                    <div class="relative flex py-2 items-center">
+                        <div class="flex-grow border-t border-slate-600"></div>
+                        <span class="flex-shrink-0 mx-2 text-gray-500 text-xs">OR</span>
+                        <div class="flex-grow border-t border-slate-600"></div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Upload JSON</label>
+                        <input type="file" id="file-upload" accept=".json" class="w-full text-xs text-gray-400 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:bg-slate-700 file:text-gray-300 hover:file:bg-slate-600">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Algorithm Section -->
+            <div class="p-5 flex-1">
+                <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Algorithm</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Select Algorithm</label>
+                        <select id="algo-select" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-sm text-gray-200">
+                            <option value="qiea">QIEA (Quantum-Inspired)</option>
+                            <option value="ga">Classical GA</option>
+                            <option value="ffd">FFD (Greedy)</option>
+                            <option value="benchmark">Benchmark All</option>
+                        </select>
+                    </div>
+
+                    <div id="params-qiea" class="algo-params space-y-3">
+                        <div class="flex justify-between items-center">
+                            <label class="text-xs text-gray-400">Population Size</label>
+                            <input type="number" id="qiea-pop" value="30" class="w-16 bg-slate-800 border border-slate-600 rounded px-1 py-1 text-xs text-right text-gray-200">
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <label class="text-xs text-gray-400">Generations</label>
+                            <input type="number" id="qiea-gen" value="200" class="w-16 bg-slate-800 border border-slate-600 rounded px-1 py-1 text-xs text-right text-gray-200">
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <label class="text-xs text-gray-400">Rotation Angle (Δθ)</label>
+                            <input type="number" step="0.01" id="qiea-rot" value="0.05" class="w-16 bg-slate-800 border border-slate-600 rounded px-1 py-1 text-xs text-right text-gray-200">
+                        </div>
+                    </div>
+
+                    <div id="params-ga" class="algo-params space-y-3 hidden">
+                        <div class="flex justify-between items-center">
+                            <label class="text-xs text-gray-400">Population Size</label>
+                            <input type="number" id="ga-pop" value="50" class="w-16 bg-slate-800 border border-slate-600 rounded px-1 py-1 text-xs text-right text-gray-200">
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <label class="text-xs text-gray-400">Generations</label>
+                            <input type="number" id="ga-gen" value="200" class="w-16 bg-slate-800 border border-slate-600 rounded px-1 py-1 text-xs text-right text-gray-200">
+                        </div>
+                    </div>
+
+                    <div id="params-benchmark" class="algo-params space-y-3 hidden">
+                        <div class="flex justify-between items-center">
+                            <label class="text-xs text-gray-400">Seeds (Comma separated)</label>
+                            <input type="text" id="bench-seeds" value="42,100,200,300,400" class="w-32 bg-slate-800 border border-slate-600 rounded px-1 py-1 text-xs text-right text-gray-200">
+                        </div>
+                    </div>
+
+                    <button id="btn-run" class="w-full bg-accent hover:bg-sky-400 text-slate-900 font-bold rounded py-2 mt-4 transition-colors disabled:opacity-50" disabled>
+                        RUN OPTIMIZATION
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center: Visualisation & Results -->
+        <main class="flex-1 flex flex-col bg-slate-900 overflow-y-auto p-6 space-y-6">
+            
+            <!-- Result Overview Cards -->
+            <div id="results-cards" class="grid grid-cols-4 gap-4 hidden">
+                <div class="bg-cardBg p-4 rounded shadow border border-slate-700">
+                    <div class="text-xs text-gray-400 uppercase">Best Fitness</div>
+                    <div id="res-fitness" class="text-2xl font-semibold text-white mt-1">-</div>
+                </div>
+                <div class="bg-cardBg p-4 rounded shadow border border-slate-700">
+                    <div class="text-xs text-gray-400 uppercase">Runtime</div>
+                    <div id="res-runtime" class="text-2xl font-semibold text-white mt-1">-</div>
+                </div>
+                <div class="bg-cardBg p-4 rounded shadow border border-slate-700">
+                    <div class="text-xs text-gray-400 uppercase">Status</div>
+                    <div id="res-status" class="text-2xl font-semibold mt-1">-</div>
+                </div>
+                <div class="bg-cardBg p-4 rounded shadow border border-slate-700">
+                    <div class="text-xs text-gray-400 uppercase">Active Nodes</div>
+                    <div id="res-nodes" class="text-2xl font-semibold text-white mt-1">-</div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-2 gap-6 h-80">
+                <div class="bg-cardBg p-4 rounded shadow border border-slate-700 relative">
+                    <h3 class="text-sm text-gray-400 mb-2 absolute top-4 left-4 z-10">Convergence Curve</h3>
+                    <canvas id="convergenceChart"></canvas>
+                </div>
+                <div class="bg-cardBg p-4 rounded shadow border border-slate-700 relative">
+                    <h3 class="text-sm text-gray-400 mb-2 absolute top-4 left-4 z-10">Node Resource Utilization</h3>
+                    <canvas id="resourceChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Explainability Panel (Placement Table) -->
+            <div class="bg-cardBg rounded shadow border border-slate-700 flex-1 flex flex-col overflow-hidden hidden" id="explainability-panel">
+                <div class="p-4 border-b border-slate-700 shrink-0">
+                    <h3 class="text-lg font-semibold text-white">Placement & Explainability</h3>
+                </div>
+                <div class="overflow-y-auto flex-1 p-0">
+                    <table class="w-full text-left text-sm text-gray-300">
+                        <thead class="text-xs text-gray-400 uppercase bg-slate-800 sticky top-0">
+                            <tr>
+                                <th class="px-4 py-3">Service</th>
+                                <th class="px-4 py-3">Node</th>
+                                <th class="px-4 py-3">CPU</th>
+                                <th class="px-4 py-3">RAM</th>
+                                <th class="px-4 py-3">Reason / Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="placement-tbody" class="divide-y divide-slate-700/50">
+                            <!-- Rows injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Benchmark Results Panel -->
+            <div class="bg-cardBg rounded shadow border border-slate-700 flex-1 flex flex-col overflow-hidden hidden" id="benchmark-panel">
+                 <div class="p-4 border-b border-slate-700 shrink-0">
+                    <h3 class="text-lg font-semibold text-white">Benchmark Comparison</h3>
+                </div>
+                <div class="overflow-y-auto p-4 flex-1">
+                    <table class="w-full text-left text-sm text-gray-300">
+                        <thead class="text-xs text-gray-400 uppercase bg-slate-800">
+                            <tr>
+                                <th class="px-4 py-3">Algorithm</th>
+                                <th class="px-4 py-3">Avg Fitness</th>
+                                <th class="px-4 py-3">Feasible Rate</th>
+                                <th class="px-4 py-3">Avg Runtime (ms)</th>
+                                <th class="px-4 py-3">Avg Active Nodes</th>
+                                <th class="px-4 py-3">Avg SLA Violations</th>
+                            </tr>
+                        </thead>
+                        <tbody id="benchmark-tbody" class="divide-y divide-slate-700/50">
+                            <!-- Rows injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-slate-900/80 z-50 flex flex-col items-center justify-center hidden">
+        <div class="w-16 h-16 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4"></div>
+        <h2 class="text-xl font-semibold text-white" id="loading-text">Optimizing Placement...</h2>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
